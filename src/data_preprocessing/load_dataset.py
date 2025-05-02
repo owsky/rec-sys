@@ -1,10 +1,16 @@
 import pandas as pd
 import numpy as np
+from scipy.sparse import csr_array
 from sklearn.model_selection import train_test_split
 from src.data_preprocessing.Dataset import Dataset
 
 
 def load_dataset(seed: int) -> Dataset:
+    """
+    Loads and transforms the dataset from the file system
+    :param seed: seed for reproducibility
+    :return: an instance of the Dataset data class
+    """
     # load movies metadata
     movies_df = pd.read_csv("dataset/movies.csv")
 
@@ -31,6 +37,11 @@ def load_dataset(seed: int) -> Dataset:
     val = val_df[["userId", "movieId", "rating"]].to_numpy(dtype=np.int64)
     te = test_df[["userId", "movieId", "rating"]].to_numpy(dtype=np.int64)
 
+    # create sparse matrix
+    sparse_tr = csr_array(
+        (train_df["rating"], (train_df["userId"], train_df["movieId"])), shape=(n_users, n_items)
+    )
+
     dataset = Dataset(
         ratings_df=ratings_df,
         movies_df=movies_df,
@@ -40,6 +51,7 @@ def load_dataset(seed: int) -> Dataset:
         te=te,
         n_users=n_users,
         n_items=n_items,
+        sparse_tr=sparse_tr,
     )
 
     return dataset

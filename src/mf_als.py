@@ -4,45 +4,43 @@ from loguru import logger
 from src.DataLoader import DataLoader
 from src.data_preprocessing.Dataset import Dataset
 from src.models.collaborative_filtering.matrix_factorization.MatrixFactorization import MatrixFactorization
-from src.models.collaborative_filtering.matrix_factorization.MfSgdTrainer import MfSgdTrainer
+from src.models.collaborative_filtering.matrix_factorization.AlsTrainer import AlsTrainer
 from src.utils.wandb_tuning import tune
 
 
-def train_mf_sgd(dataset: Dataset, seed: int):
+def train_mf_als(dataset: Dataset, seed: int):
     """
-    Train the Matrix Factorization model using Stochastic Gradient Descent
+    Train the Matrix Factorization model using Alternating Least Squares
     :param dataset: dataset object
     :param seed: seed for reproducibility
     """
     # tuned hyper-parameters
-    batch_size = 32
-    n_factors = 100
-    lr = 0.00000318119200608455
-    reg = 0.0002070206242152593
+    batch_size = 256
+    n_factors = 1
+    reg = 0.00991205549825312
     # create the data loaders
-    tr_loader = DataLoader(data=dataset.tr, batch_size=batch_size, seed=seed)
     val_loader = DataLoader(data=dataset.val, batch_size=batch_size, seed=seed)
     te_loader = DataLoader(data=dataset.te, batch_size=batch_size, seed=seed)
     # create the model
     mf = MatrixFactorization(n_factors=n_factors, n_users=dataset.n_users, n_items=dataset.n_items)
     # create the trainer
-    sgd_trainer = MfSgdTrainer(model=mf, tr_loader=tr_loader, lr=lr, reg=reg)
+    als_trainer = AlsTrainer(model=mf, sparse_tr=dataset.sparse_tr)
     # train the model
-    sgd_trainer.fit(val_loader=val_loader)
+    als_trainer.fit(val_loader=val_loader, reg=reg)
     # validate using test data loader
-    test = sgd_trainer.validate(te_loader)
+    test = als_trainer.validate(te_loader)
     logger.info(f"Final RMSE: {test}")
 
 
-def tune_mf_sgd(dataset: Dataset, seed: int):
+def tune_mf_als(dataset: Dataset, seed: int):
     """
-    Tune the Matrix Factorization model using Stochastic Gradient Descent
+    Tune the Matrix Factorization model using Alternating Least Squares
     :param dataset: dataset object
     :param seed: seed for reproducibility
     """
     # define tuning configuration
     tune_config = {
-        "name": "MF_SGD",
+        "name": "MF_ALS",
         "method": "bayes",
         "metric": {"goal": "minimize", "name": "RMSE"},
         "parameters": {
@@ -58,23 +56,16 @@ def tune_mf_sgd(dataset: Dataset, seed: int):
         with wandb.init():
             # get random configuration
             n_factors = wandb.config.get("n_factors")
-            lr = wandb.config.get("learning_rate")
             reg = wandb.config.get("reg")
-            batch_size = wandb.config.get("batch_size")
-            # create data loaders
-            tr_loader = DataLoader(data=dataset.tr, batch_size=batch_size, seed=seed)
-            val_loader = DataLoader(data=dataset.val, batch_size=batch_size, seed=seed)
-            # create the model
+            val_loader = DataLoader(data=dataset.val, batch_size=256, seed=seed)
             mf = MatrixFactorization(n_factors=n_factors, n_users=dataset.n_users, n_items=dataset.n_items)
-            # create the trainer
-            trainer = MfSgdTrainer(model=mf, tr_loader=tr_loader, lr=lr, reg=reg)
-            # train the model
-            trainer.fit(val_loader=val_loader, wandb_train=True)
+            trainer = AlsTrainer(model=mf, sparse_tr=dataset.sparse_tr)
+            trainer.fit(val_loader=val_loader, wandb_train=True, reg=reg)
 
-        # tune the model
-        tune(
-            tune_config=tune_config,
-            tune_fn=tune_fn,
-            entity_name=os.getenv("WANDB_ENTITY"),
-            exp_name=os.getenv("WANDB_PROJECT"),
-        )
+    # tune the model
+    tune(
+        tune_config=tune_config,
+        tune_fn=tune_fn,
+        entity_name=os.getenv("WANDB_ENTITY"),
+        exp_name=os.getenv("WANDB_PROJECT"),
+    )
