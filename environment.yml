@@ -1,0 +1,14 @@
+name: "rec-sys"
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.13
+  - pandas
+  - numpy
+  - scipy
+  - tqdm
+  - loguru
+  - scikit-learn
+  - wandb=0.19.10
+  - python-dotenv
