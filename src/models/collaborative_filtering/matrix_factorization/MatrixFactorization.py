@@ -1,5 +1,8 @@
+from typing import Optional
+
 import numpy as np
 from numpy.typing import NDArray
+
 from src.models.Model import Model
 
 
@@ -8,22 +11,24 @@ class MatrixFactorization(Model):
     Class for matrix factorization models
     """
 
-    P: NDArray[np.float64]
-    Q: NDArray[np.float64]
-
-    def __init__(self, n_users, n_items, n_factors):
+    def __init__(self, n_users: int, n_items: int, n_factors: int, average_rating: float, seed: Optional[int]):
         self.num_users = n_users
         self.num_items = n_items
         self.n_factors = n_factors
 
-        # Xavier init for users and items factors
-        scale = 1.0 / np.sqrt(n_factors)
-        self.P = np.random.normal(0, scale, size=(n_users, n_factors))
-        self.Q = np.random.normal(0, scale, size=(n_items, n_factors))
+        if seed is not None:
+            rng = np.random.RandomState(seed)
+        else:
+            rng = np.random.RandomState()
 
-        self.users_bias = np.zeros(n_users)
-        self.items_bias = np.zeros(n_items)
-        self.global_bias = 0
+        # Xavier init for users and items factors
+        scale = 1.0 / np.sqrt(n_factors + 1)
+        self.P = rng.normal(0, scale, size=(n_users, n_factors + 1))
+        self.Q = rng.normal(0, scale, size=(n_items, n_factors + 1))
+        # initialize biases within embeddings
+        self.P[:, 0] = 0
+        self.Q[:, 0] = 0
+        self.global_bias = average_rating
 
     def predict(self, users: NDArray, items: NDArray) -> NDArray[np.float64]:
         """
@@ -33,9 +38,4 @@ class MatrixFactorization(Model):
         :return: numpy array of predicted ratings
         """
         # include global, users and items biases during computation
-        return (
-            self.global_bias
-            + self.users_bias[users]
-            + self.items_bias[items]
-            + np.sum(self.P[users] * self.Q[items], axis=1)
-        )
+        return self.global_bias + np.sum(self.P[users] * self.Q[items], axis=1)

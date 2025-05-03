@@ -1,8 +1,11 @@
 from typing import Literal
+
 import numpy as np
 from scipy.sparse import csr_array
-from src.models.collaborative_filtering.matrix_factorization.MatrixFactorization import MatrixFactorization
+from typing_extensions import override
+
 from src.models.Trainer import Trainer
+from src.models.collaborative_filtering.matrix_factorization.MatrixFactorization import MatrixFactorization
 
 
 class AlsTrainer(Trainer):
@@ -44,6 +47,7 @@ class AlsTrainer(Trainer):
         }
         self.observed_items = [get_observed(index=i, kind="item") for i in range(model.num_items)]
 
+    @override
     def training_epoch(self, reg: float):
         """
         Training epoch for alternating least squares
@@ -64,16 +68,12 @@ class AlsTrainer(Trainer):
         if kind == "user":
             obs = self.observed_users
             current_weight = self.model.P
-            current_bias = self.model.users_bias
             fixed_weight = self.model.Q
-            fixed_bias = self.model.items_bias
             n = self.model.num_users
         else:
             obs = self.observed_items
             current_weight = self.model.Q
-            current_bias = self.model.items_bias
             fixed_weight = self.model.P
-            fixed_bias = self.model.users_bias
             n = self.model.num_items
 
         # pre-compute regularization term multiplied to identity matrix
@@ -84,16 +84,9 @@ class AlsTrainer(Trainer):
             observed_indices, observed_ratings = obs[idx]
 
             # subtract global mean and fixed biases
-            resid = observed_ratings - (self.model.global_bias + fixed_bias[observed_indices])
-
-            # incorporate bias terms in the matrix
-            m = np.hstack([np.ones((len(observed_indices), 1)), fixed_weight[observed_indices, :]])
+            resid = observed_ratings - self.model.global_bias
 
             # solve the quadratic problem
-            a = m.T @ m + reg_term
-            b = m.T @ resid
-            sol = np.linalg.solve(a, b)
-
-            # update weights and biases
-            current_bias[idx] = sol[0]
-            current_weight[idx, :] = sol[1:]
+            a = fixed_weight[observed_indices, :].T @ fixed_weight[observed_indices, :] + reg_term
+            b = fixed_weight[observed_indices, :].T @ resid
+            current_weight[idx, :] = np.linalg.solve(a, b)

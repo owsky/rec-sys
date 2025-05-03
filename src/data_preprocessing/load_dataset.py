@@ -1,11 +1,14 @@
-import pandas as pd
+from typing import Optional
+
 import numpy as np
+import pandas as pd
 from scipy.sparse import csr_array
 from sklearn.model_selection import train_test_split
+
 from src.data_preprocessing.Dataset import Dataset
 
 
-def load_dataset(seed: int) -> Dataset:
+def load_dataset(seed: Optional[int]) -> Dataset:
     """
     Loads and transforms the dataset from the file system
     :param seed: seed for reproducibility
@@ -42,6 +45,9 @@ def load_dataset(seed: int) -> Dataset:
         (train_df["rating"], (train_df["userId"], train_df["movieId"])), shape=(n_users, n_items)
     )
 
+    # compute average rating
+    average_rating = train_df["rating"].mean()
+
     dataset = Dataset(
         ratings_df=ratings_df,
         movies_df=movies_df,
@@ -52,6 +58,7 @@ def load_dataset(seed: int) -> Dataset:
         n_users=n_users,
         n_items=n_items,
         sparse_tr=sparse_tr,
+        average_rating=average_rating,
     )
 
     return dataset

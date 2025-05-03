@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import pandas as pd
+from typing import Optional
 from numpy.typing import NDArray
 from scipy.sparse import csr_array
 
@@ -19,3 +20,5 @@ class Dataset:
     n_users: int
     n_items: int
     sparse_tr: csr_array
+    average_rating: float
+    seed: Optional[int] = None

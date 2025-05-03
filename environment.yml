@@ -3,7 +3,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - python=3.13
+  - python=3.11
   - pandas
   - numpy
   - scipy
@@ -12,3 +12,4 @@ dependencies:
   - scikit-learn
   - wandb=0.19.10
   - python-dotenv
+  - pyspark=3.5.5

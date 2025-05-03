@@ -1,9 +1,11 @@
 import numpy as np
-from src.DataLoader import DataLoader
-from src.utils.clip_gradient_norm import clip_gradient_norm
-from src.models.collaborative_filtering.matrix_factorization.MatrixFactorization import MatrixFactorization
 from loguru import logger
+from typing_extensions import override
+
+from src.DataLoader import DataLoader
 from src.models.Trainer import Trainer
+from src.models.collaborative_filtering.matrix_factorization.MatrixFactorization import MatrixFactorization
+from src.utils.clip_gradient_norm import clip_gradient_norm
 
 
 class MfSgdTrainer(Trainer):
@@ -29,9 +31,7 @@ class MfSgdTrainer(Trainer):
         self.lr = lr
         self.tr_loader = tr_loader
 
-        # compute the global bias as average of all ratings
-        self.model.global_bias = np.mean([np.mean(ratings) for _, _, ratings in tr_loader], dtype=np.float64)
-
+    @override
     def training_epoch(self):
         """
         Training epoch for stochastic gradient descent
@@ -46,9 +46,6 @@ class MfSgdTrainer(Trainer):
                 return
 
             # compute the prediction errors
-            errors = np.square(preds - ratings)
-
-            # reshape the errors to accomodate broadcasting
             errors_reshaped = np.square(preds - ratings)[:, np.newaxis]
             # compute the gradient updates
             grad_p = 2 * self.lr * (errors_reshaped * self.model.Q[items, :] - self.reg * self.model.P[users, :])
@@ -59,6 +56,3 @@ class MfSgdTrainer(Trainer):
             # update the gradients for the batch
             self.model.P[users, :] += grad_p
             self.model.Q[items, :] += grad_q
-            # update the bias terms
-            self.model.users_bias[users] += self.lr * (errors - self.reg * self.model.users_bias[users])
-            self.model.items_bias[items] += self.lr * (errors - self.reg * self.model.items_bias[items])

@@ -1,12 +1,14 @@
+import copy
 from abc import abstractmethod, ABC
+
 import numpy as np
 import wandb
 from loguru import logger
 from tqdm import tqdm
-from .Model import Model
+
 from src import DataLoader
 from src.utils.root_mean_squared_error import root_mean_squared_error
-import copy
+from .Model import Model
 
 
 class Trainer(ABC):
@@ -21,9 +23,15 @@ class Trainer(ABC):
     def training_epoch(self, *args, **kwargs):
         pass
 
+    def after_training(self, *args, **kwargs):
+        """
+        Method which is run after the training loop is over for cleanup
+        """
+        pass
+
     def fit(self, val_loader: DataLoader, n_epochs=1000, wandb_train=False, *args, **kwargs):
         """
-        Train the model
+        Run the training loop for the model
         :param val_loader: validation data loader
         :param n_epochs: number of epochs to train for
         :param wandb_train: whether the run should be logged using wandb
@@ -62,6 +70,7 @@ class Trainer(ABC):
                     # terminate training and reload previously best performing model
                     self.model = best_model
                     break
+        self.after_training()
 
     def validate(self, val_loader: DataLoader) -> np.float64:
         """
