@@ -7,7 +7,6 @@ from loguru import logger
 from tqdm import tqdm
 
 from src import DataLoader
-from src.utils.root_mean_squared_error import root_mean_squared_error
 from .Model import Model
 
 
@@ -44,7 +43,7 @@ class Trainer(ABC):
             # run the training epoch defined by the concrete model
             self.training_epoch(*args, **kwargs)
             # compute the current validation score
-            val_score = self.validate(val_loader=val_loader)
+            val_score = self.model.validate(val_loader=val_loader)
 
             # if wandb logging is enabled, log the current validation RMSE
             if wandb_train:
@@ -71,18 +70,3 @@ class Trainer(ABC):
                     self.model = best_model
                     break
         self.after_training()
-
-    def validate(self, val_loader: DataLoader) -> np.float64:
-        """
-        Validate the model using the given validation data loader
-        :param val_loader: validation data loader
-        :return: validation score
-        """
-        validation_scores = []
-        # accumulate the validation scores for each validation batch
-        for users, items, ratings in val_loader:
-            preds = self.model.predict(users, items)
-            rmse = root_mean_squared_error(preds, ratings)
-            validation_scores.append(rmse)
-        # return the mean of the scores
-        return np.mean(validation_scores, dtype=np.float64)
