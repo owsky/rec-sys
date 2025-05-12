@@ -9,6 +9,8 @@ Bundle of recommender systems implemented (mostly) from scratch.
     - Stochastic Gradient Descent
     - Alternating Least Squares (Python, sequential)
     - Alternating Least Squares (PySpark, parallelized)
-  - Neighborhood
+  - Neighborhood using either Pearson Correlation or Adjusted Cosine Similarity
+    - User-based
+    - Item-based 
 - Content Based
 - Non-Personalized
