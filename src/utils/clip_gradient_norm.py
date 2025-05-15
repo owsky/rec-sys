@@ -1,5 +1,5 @@
-from numpy.typing import NDArray
 import numpy as np
+from numpy.typing import NDArray
 
 
 def clip_gradient_norm(grad: NDArray, max_norm=1.0) -> NDArray:

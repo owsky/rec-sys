@@ -4,12 +4,12 @@ channels:
   - conda-forge
 dependencies:
   - python=3.11
-  - pandas
-  - numpy
-  - scipy
-  - tqdm
-  - loguru
-  - scikit-learn
+  - pandas=2.2.3
+  - numpy=1.26.4
+  - scipy=1.15.3
+  - tqdm=4.67.1
+  - loguru=0.7.2
+  - scikit-learn=1.6.1
   - wandb=0.19.10
-  - python-dotenv
+  - python-dotenv=1.1.0
   - pyspark=3.5.5

@@ -1,5 +1,6 @@
-from numpy.typing import NDArray
 import numpy as np
+from numpy.typing import NDArray
+
 from .mean_squared_error import mean_squared_error
 
 

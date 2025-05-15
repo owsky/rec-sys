@@ -6,8 +6,8 @@ import wandb
 from loguru import logger
 from tqdm import tqdm
 
-from src import DataLoader
-from .Model import Model
+from src.data_preprocessing import DataLoader
+from src.models.PredictionModel import PredictionModel
 
 
 class Trainer(ABC):
@@ -15,22 +15,26 @@ class Trainer(ABC):
     Abstract class which represents a generic trainer for a model
     """
 
-    model: Model
-    early_patience: int
+    def __init__(self, model: PredictionModel, early_patience: int):
+        self.model = model
+        self.early_patience = early_patience
 
     @abstractmethod
-    def training_epoch(self, *args, **kwargs):
-        pass
-
-    def after_training(self, *args, **kwargs):
+    def training_epoch(self) -> None:
         """
-        Method which is run after the training loop is over for cleanup
+        Code to execute during a single training epoch
         """
         pass
 
-    def fit(self, val_loader: DataLoader, n_epochs=1000, wandb_train=False, *args, **kwargs):
+    def after_training(self) -> None:
         """
-        Run the training loop for the model
+        Method to be run after the training loop is over for cleanup
+        """
+        pass
+
+    def fit(self, val_loader: DataLoader, n_epochs=1000, wandb_train=False) -> None:
+        """
+        Runs the training loop for the model
         :param val_loader: validation data loader
         :param n_epochs: number of epochs to train for
         :param wandb_train: whether the run should be logged using wandb
@@ -39,11 +43,11 @@ class Trainer(ABC):
         best_model = copy.deepcopy(self.model)
         curr_patience = 0
 
-        for _ in tqdm(range(n_epochs), desc="Training the model...", dynamic_ncols=True):
+        for _ in tqdm(range(n_epochs), desc="Training the model...", dynamic_ncols=True, leave=False):
             # run the training epoch defined by the concrete model
-            self.training_epoch(*args, **kwargs)
+            self.training_epoch()
             # compute the current validation score
-            val_score = self.model.validate(val_loader=val_loader)
+            val_score = self.model.validate_prediction(val_loader=val_loader)
 
             # if wandb logging is enabled, log the current validation RMSE
             if wandb_train:

@@ -2,7 +2,7 @@ import numpy as np
 from loguru import logger
 from typing_extensions import override
 
-from src.DataLoader import DataLoader
+from src.data_preprocessing.DataLoader import DataLoader
 from src.models.Trainer import Trainer
 from src.models.collaborative_filtering.matrix_factorization.MatrixFactorization import MatrixFactorization
 from src.utils.clip_gradient_norm import clip_gradient_norm
@@ -25,8 +25,7 @@ class MfSgdTrainer(Trainer):
         :param lr: learning rate
         :param early_patience: early stopping patience
         """
-        self.model = model
-        self.early_patience = early_patience
+        super().__init__(model=model, early_patience=early_patience)
         self.reg = reg
         self.lr = lr
         self.tr_loader = tr_loader
@@ -46,7 +45,8 @@ class MfSgdTrainer(Trainer):
                 return
 
             # compute the prediction errors
-            errors_reshaped = np.square(preds - ratings)[:, np.newaxis]
+            errors = np.square(preds - ratings)
+            errors_reshaped = errors[:, np.newaxis]
             # compute the gradient updates
             grad_p = 2 * self.lr * (errors_reshaped * self.model.Q[items, :] - self.reg * self.model.P[users, :])
             grad_q = 2 * self.lr * (errors_reshaped * self.model.P[users, :] - self.reg * self.model.Q[items, :])
@@ -56,3 +56,6 @@ class MfSgdTrainer(Trainer):
             # update the gradients for the batch
             self.model.P[users, :] += grad_p
             self.model.Q[items, :] += grad_q
+            # update the biases
+            self.model.user_biases[users] += self.lr * (errors - self.reg * self.model.user_biases[users])
+            self.model.item_biases[items] += self.lr * (errors - self.reg * self.model.item_biases[items])

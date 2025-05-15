@@ -1,19 +1,21 @@
 import os
+from typing import Optional
 
 import wandb
 from loguru import logger
 
-from src.DataLoader import DataLoader
+from src.data_preprocessing.DataLoader import DataLoader
 from src.data_preprocessing.Dataset import Dataset
 from src.models.collaborative_filtering.matrix_factorization.MatrixFactorization import MatrixFactorization
 from src.models.collaborative_filtering.matrix_factorization.MfSgdTrainer import MfSgdTrainer
 from src.utils.wandb_tuning import tune
 
 
-def train_mf_sgd(dataset: Dataset):
+def train_mf_sgd(dataset: Dataset, seed: Optional[int] = None):
     """
     Train the Matrix Factorization model using Stochastic Gradient Descent
     :param dataset: dataset object
+    :param seed: seed for reproducibility
     """
     # tuned hyper-parameters
     batch_size = 32
@@ -21,30 +23,33 @@ def train_mf_sgd(dataset: Dataset):
     lr = 0.00009083456271988014
     reg = 0.008300876421907001
     # create the data loaders
-    tr_loader = DataLoader(data=dataset.tr, batch_size=batch_size, seed=dataset.seed)
-    val_loader = DataLoader(data=dataset.val, batch_size=batch_size, seed=dataset.seed)
-    te_loader = DataLoader(data=dataset.te, batch_size=batch_size, seed=dataset.seed)
+    tr_loader = DataLoader(data=dataset.tr, batch_size=batch_size, seed=seed)
+    val_loader = DataLoader(data=dataset.val, batch_size=batch_size, seed=seed)
+    te_loader = DataLoader(data=dataset.te, batch_size=batch_size, seed=seed)
     # create the model
     mf = MatrixFactorization(
         n_factors=n_factors,
         n_users=dataset.n_users,
         n_items=dataset.n_items,
         average_rating=dataset.average_rating,
-        seed=dataset.seed,
+        seed=seed,
     )
     # create the trainer
     sgd_trainer = MfSgdTrainer(model=mf, tr_loader=tr_loader, lr=lr, reg=reg)
     # train the model
     sgd_trainer.fit(val_loader=val_loader)
     # validate using test data loader
-    test = sgd_trainer.validate(te_loader)
-    logger.info(f"Final RMSE: {test}")
+    rmse = mf.validate_prediction(te_loader)
+    logger.info(f"MF SGD RMSE: {rmse}")
+    ndcg = mf.validate_ranking(dataset.sparse_te.toarray())
+    logger.info(f"MF SGD NDCG: {ndcg}")
 
 
-def tune_mf_sgd(dataset: Dataset):
+def tune_mf_sgd(dataset: Dataset, seed: Optional[int] = None):
     """
     Tune the Matrix Factorization model using Stochastic Gradient Descent
     :param dataset: dataset object
+    :param seed: seed for reproducibility
     """
     # define tuning configuration
     tune_config = {
@@ -68,15 +73,15 @@ def tune_mf_sgd(dataset: Dataset):
             reg = wandb.config.get("reg")
             batch_size = wandb.config.get("batch_size")
             # create data loaders
-            tr_loader = DataLoader(data=dataset.tr, batch_size=batch_size, seed=dataset.seed)
-            val_loader = DataLoader(data=dataset.val, batch_size=batch_size, seed=dataset.seed)
+            tr_loader = DataLoader(data=dataset.tr, batch_size=batch_size, seed=seed)
+            val_loader = DataLoader(data=dataset.val, batch_size=batch_size, seed=seed)
             # create the model
             mf = MatrixFactorization(
                 n_factors=n_factors,
                 n_users=dataset.n_users,
                 n_items=dataset.n_items,
                 average_rating=dataset.average_rating,
-                seed=dataset.seed,
+                seed=seed,
             )
             # create the trainer
             trainer = MfSgdTrainer(model=mf, tr_loader=tr_loader, lr=lr, reg=reg)

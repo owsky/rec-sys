@@ -14,3 +14,5 @@ Bundle of recommender systems implemented (mostly) from scratch.
     - Item-based 
 - Content Based
 - Non-Personalized
+  - Highest Rated
+  - Most Popular

@@ -1,11 +1,11 @@
 from typing import Literal
 
 import numpy as np
-from scipy.sparse import csr_array
+from scipy.sparse import coo_array
 from typing_extensions import override
 
 from src.models.Trainer import Trainer
-from src.models.collaborative_filtering.matrix_factorization.MatrixFactorization import MatrixFactorization
+from .MatrixFactorization import MatrixFactorization
 
 
 class AlsTrainer(Trainer):
@@ -15,22 +15,21 @@ class AlsTrainer(Trainer):
 
     model: MatrixFactorization
 
-    def __init__(self, model: MatrixFactorization, sparse_tr: csr_array, early_patience=5):
+    def __init__(self, model: MatrixFactorization, sparse_tr: coo_array, reg: float, early_patience=5):
         """
         :param model: matrix factorization model to train
         :param sparse_tr: training data in sparse matrix format
+        :param reg: regularization parameter
         :param early_patience: early stopping patience
         """
-        self.model = model
-        self.early_patience = early_patience
-        # convert the sparse matrix to COO format for easier manipulation
-        tr_coo = sparse_tr.tocoo()
+        super().__init__(model=model, early_patience=early_patience)
+        self.reg = reg
 
         def get_observed(index: int, kind: Literal["user", "item"]):
             """
             Return indices and actual values of either a user's or an item's observed ratings
             """
-            row, col, data = (tr_coo.row, tr_coo.col, tr_coo.data)
+            row, col, data = (sparse_tr.row, sparse_tr.col, sparse_tr.data)
             if kind == "user":
                 indices = np.where((row == index))[0]
                 sliced_axis = col[indices]
@@ -48,22 +47,20 @@ class AlsTrainer(Trainer):
         self.observed_items = [get_observed(index=i, kind="item") for i in range(model.num_items)]
 
     @override
-    def training_epoch(self, reg: float):
+    def training_epoch(self):
         """
         Training epoch for alternating least squares
         """
         # fix item factors and update user factors
-        self._compute_weights(reg=reg, kind="user")
+        self._compute_weights(kind="user")
 
         # fix user factors and update item factors
-        self._compute_weights(reg=reg, kind="item")
+        self._compute_weights(kind="item")
 
-    def _compute_weights(self, reg: float, kind: Literal["user", "item"]):
+    def _compute_weights(self, kind: Literal["user", "item"]):
         """
         Compute the currently best weights for either users or items by fixing the others
-        :param reg: regularization parameter
         :param kind: whether to compute users or items weights
-        :return:
         """
         if kind == "user":
             obs = self.observed_users
@@ -77,7 +74,7 @@ class AlsTrainer(Trainer):
             n = self.model.num_items
 
         # pre-compute regularization term multiplied to identity matrix
-        reg_term = reg * np.eye(self.model.n_factors + 1)
+        reg_term = self.reg * np.eye(self.model.n_factors)
 
         for idx in range(n):
             # obtain the item IDs rated by the user / user IDs who rated the item

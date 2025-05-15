@@ -1,52 +1,52 @@
 import os
+from typing import Optional
 
 import wandb
 from loguru import logger
 
-from src.DataLoader import DataLoader
+from src.data_preprocessing.DataLoader import DataLoader
 from src.data_preprocessing.Dataset import Dataset
-from src.models.collaborative_filtering.matrix_factorization.AlsMrTrainer import AlsMrTrainer
+from src.models.collaborative_filtering.matrix_factorization.AlsTrainer import AlsTrainer
 from src.models.collaborative_filtering.matrix_factorization.MatrixFactorization import MatrixFactorization
 from src.utils.wandb_tuning import tune
 
 
-def train_mf_als_mr(dataset: Dataset):
-    """
-    Train the Matrix Factorization model using Alternating Least Squares
-    :param dataset: dataset object
-    """
+def train_mf_als(dataset: Dataset, seed: Optional[int] = None):
     # tuned hyper-parameters
     batch_size = 128
-    n_factors = 96
-    reg = 0.0006120278390272183
+    n_factors = 97
+    reg = 0.009849535002798207
     # create the data loaders
-    val_loader = DataLoader(data=dataset.val, batch_size=batch_size, seed=dataset.seed)
-    te_loader = DataLoader(data=dataset.te, batch_size=batch_size, seed=dataset.seed)
+    val_loader = DataLoader(data=dataset.val, batch_size=batch_size, seed=seed)
+    te_loader = DataLoader(data=dataset.te, batch_size=batch_size, seed=seed)
     # create the model
     mf = MatrixFactorization(
         n_factors=n_factors,
         n_users=dataset.n_users,
         n_items=dataset.n_items,
-        seed=dataset.seed,
+        seed=seed,
         average_rating=dataset.average_rating,
     )
     # create the trainer
-    als_trainer = AlsMrTrainer(model=mf, sparse_tr=dataset.sparse_tr)
+    als_trainer = AlsTrainer(model=mf, sparse_tr=dataset.sparse_tr.tocoo(), reg=reg)
     # train the model
-    als_trainer.fit(val_loader=val_loader, reg=reg)
+    als_trainer.fit(val_loader=val_loader)
     # validate using test data loader
-    test = als_trainer.validate(te_loader)
-    logger.info(f"Final RMSE: {test}")
+    rmse = mf.validate_prediction(te_loader)
+    logger.info(f"MF ALS RMSE: {rmse}")
+    ndcg = mf.validate_ranking(dataset.sparse_te.toarray())
+    logger.info(f"MF ALS NDCG: {ndcg}")
 
 
-def tune_mf_als_mr(dataset: Dataset):
+def tune_mf_als(dataset: Dataset, seed: Optional[int] = None):
     """
     Tune the Matrix Factorization model using Alternating Least Squares
     :param dataset: dataset object
+    :param seed: seed for reproducibility
     """
     # define tuning configuration
     tune_config = {
-        "name": "MF_ALS_MR",
+        "name": "MF_ALS",
         "method": "bayes",
         "metric": {"goal": "minimize", "name": "RMSE"},
         "parameters": {
@@ -62,16 +62,16 @@ def tune_mf_als_mr(dataset: Dataset):
             # get random configuration
             n_factors = wandb.config.get("n_factors")
             reg = wandb.config.get("reg")
-            val_loader = DataLoader(data=dataset.val, batch_size=256, seed=dataset.seed)
+            val_loader = DataLoader(data=dataset.val, batch_size=256, seed=seed)
             mf = MatrixFactorization(
                 n_factors=n_factors,
                 n_users=dataset.n_users,
                 n_items=dataset.n_items,
-                seed=dataset.seed,
                 average_rating=dataset.average_rating,
+                seed=seed,
             )
-            trainer = AlsMrTrainer(model=mf, sparse_tr=dataset.sparse_tr)
-            trainer.fit(val_loader=val_loader, wandb_train=True, reg=reg)
+            trainer = AlsTrainer(model=mf, sparse_tr=dataset.sparse_tr.tocoo(), reg=reg)
+            trainer.fit(val_loader=val_loader, wandb_train=True)
 
     # tune the model
     tune(

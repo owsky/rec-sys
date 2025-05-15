@@ -1,22 +1,25 @@
-import numpy as np
-from numpy.typing import NDArray
-from scipy.sparse import csr_array
+from pandas import DataFrame
+from typing_extensions import override
 
 from .NonPersonalized import NonPersonalized
 
 
 class MostPopular(NonPersonalized):
     """
-    Non-personalized recommender based on item popularity
+    Class for non-personalized, most popular recommendation model
     """
 
-    def __init__(self, train_dataset: csr_array):
+    def __init__(self, train_dataset: DataFrame):
         """
-        :param train_dataset: sparse array containing the train dataset
+        :param train_dataset: pandas DataFrame containing the training data
         """
         super().__init__(train_dataset)
 
-    def _compute_scores(self, train_dataset: csr_array) -> NDArray[np.float64]:
-        # compute how many ratings each item received, adjusted by total number of users
-        n_users = train_dataset.shape[0]
-        return train_dataset.tocsc().count_nonzero(axis=0) / n_users
+    @override
+    def _compute_scores(self, train_dataset: DataFrame) -> DataFrame:
+        """
+        Computes the non-personalized ranking scores for the training dataset according to the most popular items.
+        :param train_dataset: pandas DataFrame containing the training data
+        :return: pandas DataFrame containing the non-personalized ranking scores
+        """
+        return train_dataset.groupby("movieId").size().reset_index(name="score")
