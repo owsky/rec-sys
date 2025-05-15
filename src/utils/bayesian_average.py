@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 def bayesian_average(
     avg_ratings: NDArray[np.float64],
     n_ratings: NDArray[np.int64],
-    threshold_n_ratings: float,
+    confidence: float,
     avg_rating_global: float,
 ) -> NDArray[np.float64]:
     """
@@ -13,10 +13,8 @@ def bayesian_average(
     to how many ratings were given for the specific item.
     :param avg_ratings: numpy array containing the average ratings for the items
     :param n_ratings: numpy array containing the number of ratings for the items
-    :param threshold_n_ratings: threshold to decide inclusion of the items
+    :param confidence: first quartile of the ratings' distribution
     :param avg_rating_global: global average rating
     :return: the adjusted average ratings
     """
-    rescaled_n_ratings = n_ratings / (n_ratings + threshold_n_ratings)
-    rescaled_threshold = threshold_n_ratings / (n_ratings + threshold_n_ratings)
-    return rescaled_n_ratings * avg_ratings + rescaled_threshold * avg_rating_global
+    return (avg_ratings * n_ratings + confidence * avg_rating_global) / (n_ratings + confidence)

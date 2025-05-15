@@ -32,13 +32,13 @@ class HighestRated(NonPersonalized):
         n_ratings = count_df["count"].values
         avg_ratings = avg_df["avg"].values
 
-        # set the threshold for the weighted average to the 75th percentile of the number of ratings
-        threshold = np.percentile(n_ratings[n_ratings > 0], 75)
+        # compute the confidence as the first quartile of the ratings' distribution
+        confidence = np.percentile(n_ratings[n_ratings > 0], 25)
         # compute the bayesian average of each rating
         bayesian_avg = bayesian_average(
             avg_ratings=avg_ratings,
             n_ratings=n_ratings,
-            threshold_n_ratings=threshold,
+            confidence=confidence,
             avg_rating_global=self.avg_rating_global,
         )
         return DataFrame({"movieId": movie_ids, "score": bayesian_avg})
