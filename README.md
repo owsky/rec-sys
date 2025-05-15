@@ -103,7 +103,7 @@ of the means in absolute terms:
 ```
 
 where $\mu_i$ is the average rating for item $i$, $n$ is the total number of ratings for item $i$, and $c$ is the confidence constant,
-defined as the first quartile of the ratings' distribution.
+defined as the first quartile of the rating counts' distribution.
 
 The effect here is that an item with a very low amount of ratings will obtain a Bayesian average which is close to the global
 average.
