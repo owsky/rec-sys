@@ -2,8 +2,8 @@ from typing import Optional
 
 from loguru import logger
 
-from src.data_preprocessing.DataLoader import DataLoader
 from src.data_preprocessing import Dataset
+from src.data_preprocessing.DataLoader import DataLoader
 from src.models.collaborative_filtering.neighborhood_based.Neighborhood import Neighborhood
 
 

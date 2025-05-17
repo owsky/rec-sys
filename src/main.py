@@ -16,17 +16,21 @@ def main():
     seed = 0
     dataset = load_dataset()
 
-    # train_mf_sgd(dataset, seed=seed)
-    # train_mf_als(dataset, seed=seed)
-    # train_mf_als_mr(dataset, seed=seed)
-    #
-    # train_user_user(dataset, seed=seed)
-    # train_item_item(dataset, seed=seed)
+    # Matrix Factorization
+    train_mf_sgd(dataset, seed=seed)
+    train_mf_als(dataset, seed=seed)
+    train_mf_als_mr(dataset, seed=seed)
 
+    # Neighborhood-Based
+    train_user_user(dataset, seed=seed)
+    train_item_item(dataset, seed=seed)
+
+    # Non-Personalized
     train_most_popular(dataset=dataset)
     train_highest_rated(dataset=dataset)
 
-    # train_content_based(dataset, seed=seed)
+    # Content Based
+    train_content_based(dataset, seed=seed)
 
 
 if __name__ == "__main__":
