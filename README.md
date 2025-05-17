@@ -1,9 +1,8 @@
 # RecSys Bundle
-Bundle of recommender systems implemented (mostly) from scratch. The dataset I used is 
-[MovieLens Latest Small](https://grouplens.org/datasets/movielens/).
+Bundle of recommender systems implemented (mostly) from scratch. The dataset I used is [MovieLens Latest Small](https://grouplens.org/datasets/movielens/).
 
-## Installation
-For convenience I provide an environment file, which can be used to create a [Conda](https://www.anaconda.com/docs/getting-started/miniconda/install) environment:
+## Dependencies Installation
+For convenience I provided an environment file, which can be used to create a [Conda](https://www.anaconda.com/docs/getting-started/miniconda/install) environment:
 
 ```bash
 conda env create -f environment.yml
@@ -11,13 +10,24 @@ conda activate rec-sys
 ```
 
 ## Recommendation Problem
-TODO
+There are two ways to frame the recommendation problem:
 
-### Rating Prediction
-TODO
+1. Rating prediction
+2. Top-k recommendation
 
-### Ranking
-TODO
+Historically, the research focused on rating prediction, i.e., given a pair of user and item identifiers, predict what rating the
+user will assign to the item after consumption. Academia then shifted towards top-k recommendation, as in models which produce
+a list of the top k items for each user. There are two main reasons for this change:
+
+1. Top-k recommendation, or ranking, usually receives binary input meaning 1 if the item is relevant for the user, 0 otherwise.
+This is called implicit feedback and it is usually captured automatically through the usage of the system, in contrast with
+explicit ratings which are harder to collect.
+2. Since the goal was always to provide recommendation lists for users, it makes more sense to directly train the models for
+this task, instead of producing the rankings by simply ordering the predicted ratings. The former has been shown to outperform
+the latter, as pair-wise or list-wise loss functions are employed to directly learn such rankings.
+
+In this repository I have implemented (mostly) from scratch the most popular models which became famous in the literature, hence
+I focused more on rating prediction than ranking.
 
 ## Models
 
@@ -122,6 +132,3 @@ vectors.
 
 Then the recommendations are obtained through a K-Nearest-Neighbors model using cosine distance to measure similarity between the users'
 profiles and the movies' vectors.
-
-## Results
-TODO
